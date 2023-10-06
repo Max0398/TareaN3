@@ -1,6 +1,9 @@
 package com.marg98.tarean3
 
 import android.graphics.Color
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.SoundPool
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
@@ -31,11 +34,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var lotieAnimThinking: LottieAnimationView
     private lateinit var textMsjResultado: TextView
     private lateinit var txtMsjRespuestaCorrecta: TextView
+    //variable para definir ubicaciond de los sonidos
+    var sp:SoundPool?=null
+    var sonidoPerdiste=0
+    var sonidoGanaste=0
+    var sonidoLetraErronea=0
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         installSplashScreen()
         setContentView(R.layout.activity_main)
+        //Asignar la ubicacion del archivo de sonido a las variable
+        sp=SoundPool(1,AudioManager.STREAM_MUSIC,1)
+        sonidoPerdiste=sp?.load(this,R.raw.perdiste,1)!!
+        sonidoLetraErronea=sp?.load(this,R.raw.letraerronea,1)!!
+        sonidoGanaste=sp?.load(this,R.raw.ganaste,1)!!
 
+        //
         txtPregunta = findViewById(R.id.txtPregunta)
         lotieAnimThinking = findViewById(R.id.animation_view_thik)
         flexResponse = findViewById(R.id.edt)
@@ -47,24 +61,24 @@ class MainActivity : AppCompatActivity() {
         txtMsjRespuestaCorrecta = findViewById(R.id.txtMsjRespuestaCorrecta)
 
         //1. generar palabra a adivinar
-//1.1 la cantidad de intetos permitidos se le dara: tamaño de caracteres + 3
+        //1.1 la cantidad de intetos permitidos se le dara: tamaño de caracteres + 3
         respuesta = obtenerPalabraAleatoria().uppercase()
-        intentosPermitidos = respuesta.length + 3
+        intentosPermitidos = respuesta.length + 2
         txtCantIntentos.text = "$intentosHechos/$intentosPermitidos"
-//2. generar alfabeto que incluya las letras de la palabra a adivinar
+        //2. generar alfabeto que incluya las letras de la palabra a adivinar
         val alfabeto =
             generarAlfabeto(respuesta)//3. desordenar el alfabeto generado para que sea mas dinamica
         val alfabetoDesorden = desordenar(alfabeto)
-//4. generar los espacios donde se iran mostrando la respuesta
+        //4. generar los espacios donde se iran mostrando la respuesta
         mostrarEspacioRespuesta(respuesta.length, flexResponse)
-//4. mostrar en la vista cada letra generada como boton para que se pueda seleccionar
+        //4. mostrar en la vista cada letra generada como boton para que se pueda seleccionar
         mostrarAlfabeto(alfabetoDesorden.uppercase(), flexAlfabeto)
 
+        //boton para iniciar nuevo juego
         btnNuevoJuego = findViewById(R.id.btnNuevoJuego)
         btnNuevoJuego.visibility = View.GONE
-
         btnNuevoJuego.setOnClickListener {
-            reiniciarJuego()
+            nuevoJuego()
             btnNuevoJuego.visibility = View.GONE
         }
     }
@@ -126,15 +140,15 @@ class MainActivity : AppCompatActivity() {
 
     fun clickLetra(btnClicked: Button) {
         if (!finalizado) {
-//obtener el indice de la letra seleccionada inicialmente
+            //obtener el indice de la letra seleccionada inicialmente
             var starIndex = 0
             var resIndex = respuesta.indexOf(btnClicked.text.toString())
-//si el indice ya fue ocupado entonces no tomar en cuenta los indices hacia atras
+            //si el indice ya fue ocupado entonces no tomar en cuenta los indices hacia atras
             while (indicesOcupados.contains(resIndex)) {
                 starIndex = resIndex + 1
                 resIndex = respuesta.indexOf(btnClicked.text.toString(), starIndex)
             }
-//si la respuesta contiene la letra seleccionada
+            //si la respuesta contiene la letra seleccionada
             if (resIndex != -1) {
                 val flexRow = flexResponse.get(resIndex) as EditText
                 flexRow.setText(respuesta.get(resIndex).toString())
@@ -150,6 +164,7 @@ class MainActivity : AppCompatActivity() {
                 btnClicked.setBackgroundColor(Color.RED)
                 btnClicked.isEnabled = false
                 btnClicked.setTextColor(Color.WHITE)
+                sonidoReproducir(sonidoLetraErronea)
             }
             intentosHechos++
             txtCantIntentos.text = "$intentosHechos/$intentosPermitidos"
@@ -160,24 +175,25 @@ class MainActivity : AppCompatActivity() {
     fun verificarResultado() {
         if (intentosHechos == intentosPermitidos || indicesOcupados.size == respuesta.length) {
             finalizado = true
-//si gano o perdió
+            //si gano o perdió
             if (indicesOcupados.size == respuesta.length) {
                 lottieResult.setAnimation(R.raw.winner)
                 textMsjResultado.text = "Felicidades!"
-
+                sonidoReproducir(sonidoGanaste)
             } else {
                 lottieResult.setAnimation(R.raw.failed)
                 textMsjResultado.text = "Perdiste :("
+                sonidoReproducir(sonidoPerdiste)
             }
 
             txtMsjRespuestaCorrecta.setText("La respuesta correcta es: $respuesta")
             // Mostrar el botón "Iniciar Nuevo Juego"
             btnNuevoJuego.visibility = View.VISIBLE
-//despues de configurar la vista ponerlas como visibles
+            //despues de configurar la vista ponerlas como visibles
             textMsjResultado.visibility = View.VISIBLE
             lottieResult.visibility = View.VISIBLE
             txtMsjRespuestaCorrecta.visibility = View.VISIBLE
-//ocultar los que no se deben mostrar
+            //ocultar los que no se deben mostrar
             flexResponse.visibility = View.GONE
             txtCantIntentos.visibility = View.GONE
             flexAlfabeto.visibility = View.GONE
@@ -187,10 +203,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun reiniciarJuego() {
+    fun nuevoJuego() {
         // Restablecer variables de juego
         respuesta = obtenerPalabraAleatoria().uppercase()
-        intentosPermitidos = respuesta.length + 3
+        intentosPermitidos = respuesta.length + 2
         intentosHechos = 0
         indicesOcupados.clear()
         finalizado = false
@@ -222,6 +238,11 @@ class MainActivity : AppCompatActivity() {
 
         // Actualizar el texto de los intentos
         txtCantIntentos.text = "$intentosHechos/$intentosPermitidos"
+    }
+
+    //recibira la ubicacion del archivo de sonido para reproducir
+    fun sonidoReproducir(sonidoId:Int){
+        sp?.play(sonidoId,1f,1f,1,0,1f)
     }
 
 

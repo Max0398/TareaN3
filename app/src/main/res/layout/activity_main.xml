@@ -98,14 +98,17 @@
         app:layout_constraintTop_toBottomOf="@id/txtMsjResultado"
 
         />
+
     <Button
         android:id="@+id/btnNuevoJuego"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:backgroundTint="#4CAF50"
         android:text="Iniciar Nuevo Juego"
-        app:layout_constraintTop_toBottomOf="@+id/txtMsjRespuestaCorrecta"
-        app:layout_constraintStart_toStartOf="parent"
+        android:textColor="#000000"
         app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="4dp"/>
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/txtMsjRespuestaCorrecta" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
